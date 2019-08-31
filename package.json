@@ -1,0 +1,51 @@
+{
+  "name": "good-price-remind",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "tsc && node ./dist/index.js",
+    "debug": "tsc && node --inspect-brk=19229 ./dist/index.js"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged",
+      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS",
+      "post-commit": "git push origin master"
+    }
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "git add"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@gitee.com:taichiyi/good-price-remind.git"
+  },
+  "keywords": [],
+  "author": "taichiyi <taichiyi@foxmail.com>",
+  "license": "ISC",
+  "devDependencies": {
+    "@commitlint/cli": "^8.1.0",
+    "@commitlint/config-conventional": "^8.1.0",
+    "@types/mysql": "^2.15.7",
+    "@types/nodemailer": "^6.2.1",
+    "@types/prettier": "^1.18.2",
+    "@types/request": "^2.48.2",
+    "@typescript-eslint/eslint-plugin": "^2.0.0",
+    "@typescript-eslint/parser": "^2.0.0",
+    "eslint": "^6.2.2",
+    "eslint-config-prettier": "^6.1.0",
+    "husky": "^3.0.4",
+    "lint-staged": "^9.2.3",
+    "prettier": "^1.18.2",
+    "typescript": "^3.5.3"
+  },
+  "dependencies": {
+    "mysql": "^2.17.1",
+    "nodemailer": "^6.3.0",
+    "request": "^2.88.0"
+  }
+}
