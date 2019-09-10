@@ -63,6 +63,14 @@ export default {
 npm start
 ```
 
+## products.ts
+
+如何获取商品ID?
+
+<https://item.m.jd.com/product/1067048.html>
+
+↑这是一个京东的商品链接，`1067048`是商品ID（编号）
+
 ## crontab
 
 可以把程序部署到服务器上，定时调用。例子：

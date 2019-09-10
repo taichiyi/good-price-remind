@@ -11,7 +11,7 @@
     "resolveJsonModule": true,
     "moduleResolution": "node",
     "allowJs": false,
-    "removeComments": false,
+    "removeComments": false
   },
   "include": [
     "src/**/*"
