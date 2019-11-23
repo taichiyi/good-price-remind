@@ -4,19 +4,27 @@ import MysqlModel from './models';
 import Email, { sleep, requestPromise } from './utils';
 import { TIMEOUT, SLEEPTIME } from './constants';
 
-(async() => {
-  const keys: ConfigKeys = keysJson;
+class GoogPriceRemind {
+  private keys:ConfigKeys|undefined;
+  private emailIns: Email;
+  private mysqlIns: MysqlModel;
+  private extractParameterErr = '';
 
-  const mysqlIns = new MysqlModel(keys);
-  const emailIns = new Email(keys);
+  public constructor(keys: ConfigKeys) {
+    this.keys = keys;
 
-  let extractParameterErr = ''; // 清洗数据缺失的参数
+    this.mysqlIns = new MysqlModel(keys);
+    this.emailIns = new Email(keys);
 
-  const getProducts = async (): Promise<Product[] | null> => {
-    const { sqlHost, sqlUser, sqlPasswd, sqlPort, sqlDbname } = keys;
+    this.run();
+  }
+
+  private async getProducts(): Promise<Product[] | null> {
+    if (this.keys === undefined) return null;
+    const { sqlHost, sqlUser, sqlPasswd, sqlPort, sqlDbname } = this.keys;
     let products;
     if(sqlHost && sqlUser && sqlPasswd && sqlPort && sqlDbname) {
-      products = await mysqlIns.productsSelectQuery({
+      products = await this.mysqlIns.productsSelectQuery({
         attribute: ['product_id as id', 'product_name as name', 'product_price as price', 'product_platform as platform'],
         where: [
           {
@@ -29,9 +37,9 @@ import { TIMEOUT, SLEEPTIME } from './constants';
       products = (await import("./products")).default;
     }
     return products;
-  };
+  }
 
-  const getProductInfo = async (productID:number): Promise<string | undefined> => {
+  private async getProductInfo(productID:number): Promise<string | undefined> {
     const url = `https://item.m.jd.com/product/${productID}.html`;
     const params = {
       url,
@@ -52,15 +60,15 @@ import { TIMEOUT, SLEEPTIME } from './constants';
       let text = '';
       text += `sku: ${productID}<br />`;
       text += `错误信息: ${err.message}<br />`;
-      emailIns.sendEmail({
+      this.emailIns.sendEmail({
         subject: '获取商品信息 失败',
         text,
       });
     }
     return res;
-  };
+  }
 
-  const getProductCoupon = async (productID:number, cid: number, popId:number): Promise<string | undefined> => {
+  private async getProductCoupon (productID:number, cid: number, popId:number): Promise<string | undefined> {
     const url = `https://wq.jd.com/mjgj/fans/queryusegetcoupon?callback=getCouponListCBA&platform=3&cid=${cid}&popId=${popId}&sku=${productID}`;
     const params = {
       url,
@@ -81,7 +89,7 @@ import { TIMEOUT, SLEEPTIME } from './constants';
       let text = '';
       text += `sku: ${productID}<br />`;
       text += `错误信息: ${err.message}<br />`;
-      emailIns.sendEmail({
+      this.emailIns.sendEmail({
         subject: '获取商品优惠券 失败',
         text,
       });
@@ -89,7 +97,7 @@ import { TIMEOUT, SLEEPTIME } from './constants';
     return res;
   };
 
-  const extractParameterOfHTML = async (HTMLText: string, productID: number): Promise<[boolean, Parameters]> => {
+  private async extractParameterOfHTML (HTMLText: string, productID: number): Promise<[boolean, Parameters]> {
     let status = false; // 关键参数是否合法
     const parameters: Parameters = {
       warestatus: -1,
@@ -184,7 +192,7 @@ import { TIMEOUT, SLEEPTIME } from './constants';
 
     // 优惠券 -start-
     if (parameters.cid !== -1 && parameters.popId !== -1) {
-      const productCouponText = await getProductCoupon(productID, parameters.cid, parameters.popId);
+      const productCouponText = await this.getProductCoupon(productID, parameters.cid, parameters.popId);
       if (productCouponText) {
         const QUOTA_DISCOUNT_ALL_REGEX = /"quota":([0-9.]+)([^}]*)"discount":([0-9.]+)/g;
         const quotaDiscountAllResult = productCouponText.match(QUOTA_DISCOUNT_ALL_REGEX);
@@ -230,13 +238,13 @@ import { TIMEOUT, SLEEPTIME } from './constants';
 
     if (errStr) {
       errStr += '<br />';
-      extractParameterErr = errStr;
+      this.extractParameterErr = errStr;
     }
 
     return [status, parameters];
   }
 
-  const isSuitablePrice = (parameters: Parameters, goodPrice:number ):[boolean,number,string] => {
+  private isSuitablePrice(parameters: Parameters, goodPrice:number ):[boolean,number,string] {
     let result = false; // 是否为好价
     let price = parameters.price;
     let type = '低价'; // 优惠类型
@@ -300,46 +308,49 @@ import { TIMEOUT, SLEEPTIME } from './constants';
     return [result, price, type];
   }
 
-  const products = await getProducts();
-  if (products) {
-    // 成功
-    for (let index = 0; index < products.length; index++) {
+  private async run() {
+    const products = await this.getProducts();
+    if (products) {
+      // 成功
+      for (let index = 0; index < products.length; index++) {
 
-      // 作为一个负责任的程序我们温柔一点
-      await sleep(SLEEPTIME);
+        // 作为一个负责任的程序我们温柔一点
+        await sleep(SLEEPTIME);
 
-      const productItem = products[index];
-      const productInfo = await getProductInfo(productItem.id)
-      if (productInfo) {
-        const [isValid, parameters] = await extractParameterOfHTML(productInfo, productItem.id);
-        if (!isValid) continue;
-        const [isSuitablePriceResult,suitablePrice ,suitablePriceType] = isSuitablePrice(parameters, productItem.price);
-        if (isSuitablePriceResult) {
-          // 好价
-          let text = '';
-          text += `sku: ${productItem.id}<br />`;
-          text += `当前价: ${suitablePrice.toFixed(2)}<br />`;
-          text += `好价: ${productItem.price}<br />`;
-          text += `好价类型: ${suitablePriceType}<br />`;
-          text += `平台: ${productItem.platform}<br />`;
-          await emailIns.sendEmail({
-            subject: parameters.skuName,
-            text,
-          });
+        const productItem = products[index];
+        const productInfo = await this.getProductInfo(productItem.id)
+        if (productInfo) {
+          const [isValid, parameters] = await this.extractParameterOfHTML(productInfo, productItem.id);
+          if (!isValid) continue;
+          const [isSuitablePriceResult,suitablePrice ,suitablePriceType] = this.isSuitablePrice(parameters, productItem.price);
+          if (isSuitablePriceResult) {
+            // 好价
+            let text = '';
+            text += `sku: ${productItem.id}<br />`;
+            text += `当前价: ${suitablePrice.toFixed(2)}<br />`;
+            text += `好价: ${productItem.price}<br />`;
+            text += `好价类型: ${suitablePriceType}<br />`;
+            text += `平台: ${productItem.platform}<br />`;
+            await this.emailIns.sendEmail({
+              subject: parameters.skuName,
+              text,
+            });
+          }
         }
       }
+      if (this.extractParameterErr) {
+        this.emailIns.sendEmail({
+          subject: '参数收集 失败',
+          text: this.extractParameterErr,
+        });
+      }
+    } else {
+      // 失败
+      this.emailIns.sendEmail({
+        subject: '从数据库和本地获取商品列表 失败',
+      })
     }
-    if (extractParameterErr) {
-      emailIns.sendEmail({
-        subject: '参数收集 失败',
-        text: extractParameterErr,
-      });
-    }
-  } else {
-    // 失败
-    emailIns.sendEmail({
-      subject: '从数据库和本地获取商品列表 失败',
-    })
   }
-  process.exit();
-})();
+}
+
+new GoogPriceRemind(keysJson);
