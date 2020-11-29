@@ -4,19 +4,23 @@ import keysJson from './config';
 
 class MysqlModel {
   private pool: mysql.Pool | undefined;
-  static instance=new MysqlModel(keysJson)
+  static instance = new MysqlModel(keysJson);
   keys: ConfigKeys;
 
   constructor(keys: ConfigKeys) {
     this.keys = keys;
   }
-  static getInstance(){
-    return this.instance
+  static getInstance() {
+    return this.instance;
   }
 
   private poolQuery(
     sql: string,
-    callback: (queryErr: mysql.MysqlError | null, results?: any, fields?: mysql.FieldInfo[] | undefined) => void,
+    callback: (
+      queryErr: mysql.MysqlError | null,
+      results?: any,
+      fields?: mysql.FieldInfo[] | undefined,
+    ) => void,
   ) {
     if (this.keys === undefined) return;
     if (!this.pool) {
@@ -29,7 +33,7 @@ class MysqlModel {
         password: sqlPasswd,
         port: sqlPort,
         database: sqlDbname,
-      })
+      });
     }
 
     this.pool.getConnection((err, connection) => {
@@ -73,9 +77,9 @@ class MysqlModel {
     orderByKey?: string;
     orderBySort?: string;
   }) =>
-    new Promise<any>(resolve => {
-      const attributeStr = attribute.length === 0 ? '*' : attribute.map(val => val).join(', ');
-      const whereStr = where.map(val => `\`${val.key}\` = '${val.value}'`).join(' AND ');
+    new Promise<any>((resolve) => {
+      const attributeStr = attribute.length === 0 ? '*' : attribute.map((val) => val).join(', ');
+      const whereStr = where.map((val) => `\`${val.key}\` = '${val.value}'`).join(' AND ');
 
       const LIMIT = indexEnd > 0 ? `LIMIT ${indexStart},${indexEnd}` : '';
       const ORDER_BY = `ORDER BY \`${orderByKey}\` ${orderBySort}`;

@@ -1,6 +1,9 @@
 // "off": 0 // 关闭规则
 // "warn": 1 // 警告
 // "error": 2 // 报错
+const OFF = 0;
+const WARNNING = 2;
+const ERROR = 2;
 
 module.exports = {
   parser: "@typescript-eslint/parser",
@@ -14,24 +17,32 @@ module.exports = {
     "prettier/@typescript-eslint"
   ],
   plugins: [
-    "@typescript-eslint"
+    "@typescript-eslint",
+    "prettier"
   ],
   root: true,
   rules: {
-    // "no-console": "off",
-    "@typescript-eslint/no-unused-vars": [
-      "error",
+    '@typescript-eslint/no-unused-vars': ERROR,
+    "@typescript-eslint/no-explicit-any": OFF,
+    "@typescript-eslint/explicit-function-return-type": OFF,
+    "@typescript-eslint/no-empty-function": OFF,
+    // "@typescript-eslint/no-non-null-assertion": "off",
+    // "@typescript-eslint/explicit-member-accessibility": "off",
+    // "@typescript-eslint/no-use-before-define": "off",
+    // "@typescript-eslint/no-object-literal-type-assertion": "off",
+    // "@typescript-eslint/no-parameter-properties": "off"
+    "no-empty": [ERROR, { "allowEmptyCatch": true }],
+    'prettier/prettier': [
+      ERROR,
       {
-        argsIgnorePattern: "^_"
+        'jsxBracketSameLine': true,
+        'singleQuote': true,
+        'trailingComma': 'all',
+        'printWidth': 100,
+        'proseWrap': 'never',
+        "arrowParens": "always",
       }
     ],
-    "@typescript-eslint/no-explicit-any": "off",
-    "@typescript-eslint/no-non-null-assertion": "off",
-    "@typescript-eslint/explicit-function-return-type": "off",
-    "@typescript-eslint/explicit-member-accessibility": "off",
-    "@typescript-eslint/no-use-before-define": "off",
-    "@typescript-eslint/no-object-literal-type-assertion": "off",
-    "@typescript-eslint/no-parameter-properties": "off"
   },
   env: {
     browser: true,

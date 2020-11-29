@@ -5,21 +5,17 @@ import { ConfigKeys } from './interfaces';
 
 export default class Email {
   keys: ConfigKeys;
-  static instance=new Email(keysJson)
+  static instance = new Email(keysJson);
 
   constructor(keys: ConfigKeys) {
     this.keys = keys;
   }
 
-  static getInstance(){
-    return this.instance
+  static getInstance() {
+    return this.instance;
   }
 
-  public async sendEmail({
-    subject = '',
-    text = '',
-    fromName = '好价提醒！',
-  }) {
+  public async sendEmail({ subject = '', text = '', fromName = '好价提醒！' }) {
     if (this.keys === undefined) return;
 
     const { EmailHost, EmailPort, EmailAuthUser, EmailAuthPass, toEmail } = this.keys;
@@ -42,7 +38,7 @@ export default class Email {
       html: text, // html body
     };
 
-    await new Promise(resolve => {
+    await new Promise((resolve) => {
       // send mail with defined transport object
       transporter.sendMail(mailOptions, (error) => {
         if (error) {
@@ -51,11 +47,11 @@ export default class Email {
         resolve();
       });
     });
-  };
+  }
 }
 
 export const requestPromise = (params: any): Promise<any> =>
-  new Promise(resolve => {
+  new Promise((resolve) => {
     request(params, (err: string, httpResponse: request.Response, body: string) =>
       resolve({
         err,
@@ -65,4 +61,4 @@ export const requestPromise = (params: any): Promise<any> =>
     );
   });
 
-export const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+export const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));

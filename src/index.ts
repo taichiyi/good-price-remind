@@ -5,7 +5,7 @@ import Email, { sleep, requestPromise } from './utils';
 import { TIMEOUT, SLEEPTIME } from './constants';
 
 class GoogPriceRemind {
-  private keys:ConfigKeys|undefined;
+  private keys: ConfigKeys | undefined;
   private extractParameterErr = '';
 
   public constructor(keys: ConfigKeys) {
@@ -16,23 +16,28 @@ class GoogPriceRemind {
     if (this.keys === undefined) return null;
     const { sqlHost, sqlUser, sqlPasswd, sqlPort, sqlDbname } = this.keys;
     let products;
-    if(sqlHost && sqlUser && sqlPasswd && sqlPort && sqlDbname) {
+    if (sqlHost && sqlUser && sqlPasswd && sqlPort && sqlDbname) {
       products = await MysqlModel.getInstance().productsSelectQuery({
-        attribute: ['product_id as id', 'product_name as name', 'product_price as price', 'product_platform as platform'],
+        attribute: [
+          'product_id as id',
+          'product_name as name',
+          'product_price as price',
+          'product_platform as platform',
+        ],
         where: [
           {
             key: 'product_status',
             value: '1',
           },
-        ]
+        ],
       });
     } else {
-      products = (await import("./products")).default;
+      products = (await import('./products')).default;
     }
     return products;
   }
 
-  private async getProductInfo(productID:number): Promise<string | undefined> {
+  private async getProductInfo(productID: number): Promise<string | undefined> {
     const url = `https://item.m.jd.com/product/${productID}.html`;
     const params = {
       url,
@@ -40,12 +45,13 @@ class GoogPriceRemind {
       timeout: TIMEOUT,
       gzip: true,
       headers: {
-        'Accept': '*/*',
+        Accept: '*/*',
         'Accept-Language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7,vi;q=0.6',
         'Cache-Control': 'no-cache',
         'Accept-Encoding': 'gzip, deflate',
-        'Connection': 'keep-alive',
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3514.2 Safari/537.36',
+        Connection: 'keep-alive',
+        'User-Agent':
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3514.2 Safari/537.36',
       },
     };
     const { body: res, err } = await requestPromise(params);
@@ -61,7 +67,11 @@ class GoogPriceRemind {
     return res;
   }
 
-  private async getProductCoupon (productID:number, cid: number, popId:number): Promise<string | undefined> {
+  private async getProductCoupon(
+    productID: number,
+    cid: number,
+    popId: number,
+  ): Promise<string | undefined> {
     const url = `https://wq.jd.com/mjgj/fans/queryusegetcoupon?callback=getCouponListCBA&platform=3&cid=${cid}&popId=${popId}&sku=${productID}`;
     const params = {
       url,
@@ -69,12 +79,13 @@ class GoogPriceRemind {
       timeout: TIMEOUT,
       gzip: true,
       headers: {
-        'Accept': '*/*',
+        Accept: '*/*',
         'Accept-Language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7,vi;q=0.6',
         'Cache-Control': 'no-cache',
         'Accept-Encoding': 'gzip, deflate',
-        'Connection': 'keep-alive',
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3514.2 Safari/537.36',
+        Connection: 'keep-alive',
+        'User-Agent':
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3514.2 Safari/537.36',
       },
     };
     const { body: res, err } = await requestPromise(params);
@@ -88,9 +99,12 @@ class GoogPriceRemind {
       });
     }
     return res;
-  };
+  }
 
-  private async extractParameterOfHTML (HTMLText: string, productID: number): Promise<[boolean, Parameters]> {
+  private async extractParameterOfHTML(
+    HTMLText: string,
+    productID: number,
+  ): Promise<[boolean, Parameters]> {
     let status = false; // 关键参数是否合法
     const parameters: Parameters = {
       warestatus: -1,
@@ -108,7 +122,7 @@ class GoogPriceRemind {
     const WARESTATUS_REGEX = `"warestatus":"([0-9.]+)"`;
     const warestatusResult = HTMLText.match(WARESTATUS_REGEX);
     if (warestatusResult) {
-      parameters.warestatus = parseInt(warestatusResult[1],10);
+      parameters.warestatus = parseInt(warestatusResult[1], 10);
     }
 
     const SKUNAME_REGEX = `"skuName":"([^"]*)"`;
@@ -185,7 +199,11 @@ class GoogPriceRemind {
 
     // 优惠券 -start-
     if (parameters.cid !== -1 && parameters.popId !== -1) {
-      const productCouponText = await this.getProductCoupon(productID, parameters.cid, parameters.popId);
+      const productCouponText = await this.getProductCoupon(
+        productID,
+        parameters.cid,
+        parameters.popId,
+      );
       if (productCouponText) {
         const QUOTA_DISCOUNT_ALL_REGEX = /"quota":([0-9.]+)([^}]*)"discount":([0-9.]+)/g;
         const quotaDiscountAllResult = productCouponText.match(QUOTA_DISCOUNT_ALL_REGEX);
@@ -206,11 +224,7 @@ class GoogPriceRemind {
     }
     // 优惠券 -end-
 
-    if (
-      parameters.warestatus !== -1 &&
-      parameters.price !== -1 &&
-      parameters.skuName !== ''
-    ) {
+    if (parameters.warestatus !== -1 && parameters.price !== -1 && parameters.skuName !== '') {
       status = true;
     }
 
@@ -237,7 +251,7 @@ class GoogPriceRemind {
     return [status, parameters];
   }
 
-  private isSuitablePrice(parameters: Parameters, goodPrice:number ):[boolean,number,string] {
+  private isSuitablePrice(parameters: Parameters, goodPrice: number): [boolean, number, string] {
     let result = false; // 是否为好价
     let price = parameters.price;
     let type = '低价'; // 优惠类型
@@ -254,8 +268,8 @@ class GoogPriceRemind {
     if (needNumRebate.length > 0) {
       for (let index = 0; index < needNumRebate.length; index++) {
         const element = needNumRebate[index];
-        const discountPrice = parameters.price  * element.rebate / 10;
-        if (discountPrice<price) {
+        const discountPrice = (parameters.price * element.rebate) / 10;
+        if (discountPrice < price) {
           price = discountPrice;
           type = `满${element.needNum}件打${element.rebate}折`;
         }
@@ -268,10 +282,11 @@ class GoogPriceRemind {
     if (needMoneyRewardMoney.length > 0) {
       for (let index = 0; index < needMoneyRewardMoney.length; index++) {
         const element = needMoneyRewardMoney[index];
-        const _price = (parameters.tpp && parameters.tpp < parameters.price) ? parameters.tpp :parameters.price;
+        const _price =
+          parameters.tpp && parameters.tpp < parameters.price ? parameters.tpp : parameters.price;
         const needNum = Math.ceil(element.needMoney / _price);
         const discountPrice = (needNum * _price - element.rewardMoney) / needNum;
-        if (discountPrice<price) {
+        if (discountPrice < price) {
           price = discountPrice;
           type = `满${element.needMoney}元减${element.rewardMoney}元`;
         }
@@ -284,10 +299,11 @@ class GoogPriceRemind {
     if (quotaDiscount.length > 0) {
       for (let index = 0; index < quotaDiscount.length; index++) {
         const element = quotaDiscount[index];
-        const _price = (parameters.tpp && parameters.tpp < parameters.price) ? parameters.tpp :parameters.price;
+        const _price =
+          parameters.tpp && parameters.tpp < parameters.price ? parameters.tpp : parameters.price;
         const needNum = Math.ceil(element.quota / _price);
         const discountPrice = (needNum * _price - element.discount) / needNum;
-        if (discountPrice<price) {
+        if (discountPrice < price) {
           price = discountPrice;
           type = `领券，满${element.quota}元减${element.discount}元`;
         }
@@ -295,7 +311,7 @@ class GoogPriceRemind {
     }
     // 优惠券 -end-
 
-    if (price<=goodPrice) {
+    if (price <= goodPrice) {
       result = true;
     }
     return [result, price, type];
@@ -306,16 +322,21 @@ class GoogPriceRemind {
     if (products) {
       // 成功
       for (let index = 0; index < products.length; index++) {
-
         // 作为一个负责任的程序我们温柔一点
         await sleep(SLEEPTIME);
 
         const productItem = products[index];
-        const productInfo = await this.getProductInfo(productItem.id)
+        const productInfo = await this.getProductInfo(productItem.id);
         if (productInfo) {
-          const [isValid, parameters] = await this.extractParameterOfHTML(productInfo, productItem.id);
+          const [isValid, parameters] = await this.extractParameterOfHTML(
+            productInfo,
+            productItem.id,
+          );
           if (!isValid) continue;
-          const [isSuitablePriceResult,suitablePrice ,suitablePriceType] = this.isSuitablePrice(parameters, productItem.price);
+          const [isSuitablePriceResult, suitablePrice, suitablePriceType] = this.isSuitablePrice(
+            parameters,
+            productItem.price,
+          );
           if (isSuitablePriceResult) {
             // 好价
             let text = '';
@@ -341,9 +362,9 @@ class GoogPriceRemind {
       // 失败
       Email.getInstance().sendEmail({
         subject: '从数据库和本地获取商品列表 失败',
-      })
+      });
     }
   }
 }
 
-new GoogPriceRemind(keysJson).run()
+new GoogPriceRemind(keysJson).run();
