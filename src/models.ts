@@ -62,7 +62,7 @@ class MysqlModel {
   //   });
   // };
 
-  public productsSelectQuery = ({
+  public productsSelectQuery = <T>({
     attribute = [],
     where = [],
     indexStart = 0,
@@ -77,7 +77,7 @@ class MysqlModel {
     orderByKey?: string;
     orderBySort?: string;
   }) =>
-    new Promise<any>((resolve) => {
+    new Promise<T[]>((resolve, reject) => {
       const attributeStr = attribute.length === 0 ? '*' : attribute.map((val) => val).join(', ');
       const whereStr = where.map((val) => `\`${val.key}\` = '${val.value}'`).join(' AND ');
 
@@ -86,13 +86,8 @@ class MysqlModel {
 
       const sql = `SELECT ${attributeStr} FROM \`products\` WHERE ${whereStr} ${ORDER_BY} ${LIMIT}`;
       this.poolQuery(sql, (error, results) => {
-        let result = [];
-        if (error) {
-          // this.queryError(error, sql);
-        } else {
-          result = results;
-        }
-        resolve(result);
+        if (error) reject(error);
+        resolve(results);
       });
     });
 }

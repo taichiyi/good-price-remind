@@ -1,5 +1,4 @@
 import * as nodemailer from 'nodemailer';
-import * as request from 'request';
 import keysJson from './config';
 import { ConfigKeys } from './interfaces';
 
@@ -49,16 +48,5 @@ export default class Email {
     });
   }
 }
-
-export const requestPromise = (params: any): Promise<any> =>
-  new Promise((resolve) => {
-    request(params, (err: string, httpResponse: request.Response, body: string) =>
-      resolve({
-        err,
-        httpResponse,
-        body,
-      }),
-    );
-  });
 
 export const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
