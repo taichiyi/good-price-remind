@@ -1,12 +1,18 @@
 import * as nodemailer from 'nodemailer';
 import * as request from 'request';
+import keysJson from './config';
 import { ConfigKeys } from './interfaces';
 
 export default class Email {
-  private keys: ConfigKeys | undefined;
+  keys: ConfigKeys;
+  static instance=new Email(keysJson)
 
-  public constructor(keys: ConfigKeys) {
+  constructor(keys: ConfigKeys) {
     this.keys = keys;
+  }
+
+  static getInstance(){
+    return this.instance
   }
 
   public async sendEmail({

@@ -1,12 +1,17 @@
 import * as mysql from 'mysql';
 import { ConfigKeys } from './interfaces';
+import keysJson from './config';
 
 class MysqlModel {
   private pool: mysql.Pool | undefined;
-  private keys: ConfigKeys | undefined;
+  static instance=new MysqlModel(keysJson)
+  keys: ConfigKeys;
 
-  public constructor(keys: ConfigKeys) {
+  constructor(keys: ConfigKeys) {
     this.keys = keys;
+  }
+  static getInstance(){
+    return this.instance
   }
 
   private poolQuery(

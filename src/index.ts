@@ -6,17 +6,10 @@ import { TIMEOUT, SLEEPTIME } from './constants';
 
 class GoogPriceRemind {
   private keys:ConfigKeys|undefined;
-  private emailIns: Email;
-  private mysqlIns: MysqlModel;
   private extractParameterErr = '';
 
   public constructor(keys: ConfigKeys) {
     this.keys = keys;
-
-    this.mysqlIns = new MysqlModel(keys);
-    this.emailIns = new Email(keys);
-
-    this.run();
   }
 
   private async getProducts(): Promise<Product[] | null> {
@@ -24,7 +17,7 @@ class GoogPriceRemind {
     const { sqlHost, sqlUser, sqlPasswd, sqlPort, sqlDbname } = this.keys;
     let products;
     if(sqlHost && sqlUser && sqlPasswd && sqlPort && sqlDbname) {
-      products = await this.mysqlIns.productsSelectQuery({
+      products = await MysqlModel.getInstance().productsSelectQuery({
         attribute: ['product_id as id', 'product_name as name', 'product_price as price', 'product_platform as platform'],
         where: [
           {
@@ -60,7 +53,7 @@ class GoogPriceRemind {
       let text = '';
       text += `sku: ${productID}<br />`;
       text += `错误信息: ${err.message}<br />`;
-      this.emailIns.sendEmail({
+      Email.getInstance().sendEmail({
         subject: '获取商品信息 失败',
         text,
       });
@@ -89,7 +82,7 @@ class GoogPriceRemind {
       let text = '';
       text += `sku: ${productID}<br />`;
       text += `错误信息: ${err.message}<br />`;
-      this.emailIns.sendEmail({
+      Email.getInstance().sendEmail({
         subject: '获取商品优惠券 失败',
         text,
       });
@@ -308,7 +301,7 @@ class GoogPriceRemind {
     return [result, price, type];
   }
 
-  private async run() {
+  public async run() {
     const products = await this.getProducts();
     if (products) {
       // 成功
@@ -331,7 +324,7 @@ class GoogPriceRemind {
             text += `好价: ${productItem.price}<br />`;
             text += `好价类型: ${suitablePriceType}<br />`;
             text += `平台: ${productItem.platform}<br />`;
-            await this.emailIns.sendEmail({
+            await Email.getInstance().sendEmail({
               subject: parameters.skuName,
               text,
             });
@@ -339,18 +332,18 @@ class GoogPriceRemind {
         }
       }
       if (this.extractParameterErr) {
-        this.emailIns.sendEmail({
+        Email.getInstance().sendEmail({
           subject: '参数收集 失败',
           text: this.extractParameterErr,
         });
       }
     } else {
       // 失败
-      this.emailIns.sendEmail({
+      Email.getInstance().sendEmail({
         subject: '从数据库和本地获取商品列表 失败',
       })
     }
   }
 }
 
-new GoogPriceRemind(keysJson);
+new GoogPriceRemind(keysJson).run()
