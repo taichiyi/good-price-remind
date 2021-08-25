@@ -37,7 +37,7 @@ export default class Email {
       html: text, // html body
     };
 
-    await new Promise((resolve) => {
+    await new Promise<void>((resolve) => {
       // send mail with defined transport object
       transporter.sendMail(mailOptions, (error) => {
         if (error) {
